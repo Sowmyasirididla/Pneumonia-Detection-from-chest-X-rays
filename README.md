@@ -1,22 +1,5 @@
 # Pneumonia-Detection-from-chest-X-rays
 Deep learning model that detects pneumonia from the Chest X-rays. The dataset used is Paul Mooney's chest x-ray pneumonia detection dataset, which is having a data imbalance issue. The dataset imbalance is solved and models like CNN and pre trained models like VGG19,ResNet50,EfficientNetb3 and DenseNet121 are used. Best model is EffiecientNetb3.
-Imports
-
-import os
-import kagglehub
-import torch
-from torchvision import datasets, transforms, models
-from torch.utils.data import DataLoader
-import torch.nn as nn
-import torch.optim as optim
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-from sklearn.metrics import (accuracy_score, precision_score, recall_score,
-                             f1_score, roc_auc_score, confusion_matrix, roc_curve)
-import warnings
-warnings.filterwarnings('ignore')
-
 
 ## Dataset Download
 
@@ -28,91 +11,13 @@ images categorized into two classes:
 
 # Download the dataset from Kaggle
 path = kagglehub.dataset_download("paultimothymooney/chest-xray-pneumonia")
-print("Path to dataset files:", path)
 
-# Define the data directories (verify the folder structure; here we assume subdirectories 'train', 'val', 'test')
-train_dir = os.path.join(path, 'chest_xray', 'train')
-val_dir   = os.path.join(path, 'chest_xray', 'val')
-test_dir  = os.path.join(path, 'chest_xray', 'test')
-
-
-input_size = 224  # typical size for pre-trained models
-batch_size = 32
-
-# Define transformations
-train_transforms = transforms.Compose([
-    transforms.Resize((input_size, input_size)),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(15),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406],  # Mean from ImageNet
-                         [0.229, 0.224, 0.225])  # Std from ImageNet
-])
-
-val_transforms = transforms.Compose([
-    transforms.Resize((input_size, input_size)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406],
-                         [0.229, 0.224, 0.225])
-])
-
-# Create datasets
-train_dataset = datasets.ImageFolder(train_dir, transform=train_transforms)
-val_dataset   = datasets.ImageFolder(val_dir, transform=val_transforms)
-test_dataset  = datasets.ImageFolder(test_dir, transform=val_transforms)
-
-# Create dataloaders
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-val_loader   = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-test_loader  = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-
-# Set device for training (GPU if available)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
-Data Visualisation
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Get class names
-class_names = train_dataset.classes
-print("Class Names:", class_names)
-
-# Function to count images per class
-def count_images(dataset):
-    counts = {class_name: 0 for class_name in class_names}
-    for _, label in dataset.samples:  # dataset.samples contains (image_path, label)
-        counts[class_names[label]] += 1
-    return counts
-
-# Get dataset distributions
-train_counts = count_images(train_dataset)
-val_counts = count_images(val_dataset)
-test_counts = count_images(test_dataset)
-
-# Plot side-by-side bar charts
-fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-
-sns.barplot(x=list(train_counts.keys()), y=list(train_counts.values()), ax=ax[0], palette="viridis")
-ax[0].set_title("Train Set Distribution")
-ax[0].set_ylabel("Image Count")
-
-sns.barplot(x=list(val_counts.keys()), y=list(val_counts.values()), ax=ax[1], palette="magma")
-ax[1].set_title("Validation Set Distribution")
-
-sns.barplot(x=list(test_counts.keys()), y=list(test_counts.values()), ax=ax[2], palette="coolwarm")
-ax[2].set_title("Test Set Distribution")
-
-plt.tight_layout()
-plt.show()
-
- Pneumonia cases (74%) dominate the dataset compared to normal
+Pneumonia cases (74%) dominate the dataset compared to normal
 cases (26%).
 
  This imbalance must be addressed during model training to avoid bias.
 
-**Solving the Imbalance Issue **
+# Solving the Imbalance Issue
 
 By duplicating the underrepresented samples to match the number of the majority class, creating a balanced dataset. This way, each class contributes equally during training without relying on weighted sampling.
 
@@ -146,14 +51,6 @@ def rebalance_dataset(dataset):
     return torch.utils.data.Subset(dataset, balanced_indices)
 
 
-balanced_train_dataset = rebalance_dataset(train_dataset)
-
-Data Visualisation after solving the data imbalance issue
-
-from collections import Counter
-import matplotlib.pyplot as plt
-import torch
-from torch.utils.data import DataLoader
 
 def plot_class_distribution(dataset, title="Class Distribution"):
     if hasattr(dataset, 'dataset') and isinstance(dataset, torch.utils.data.Subset):
